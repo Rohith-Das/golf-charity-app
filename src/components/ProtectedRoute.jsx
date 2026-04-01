@@ -1,0 +1,19 @@
+import { useAuth } from '../contexts/AuthContext'
+import { Navigate } from 'react-router-dom'
+import LoadingSpinner from './LoadingSpinner'
+
+export default function ProtectedRoute({ children, adminOnly = false }) {
+  const { user, profile, loading } = useAuth()
+
+  if (loading) return <LoadingSpinner />
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (adminOnly && profile?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return children
+}

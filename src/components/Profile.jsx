@@ -1,0 +1,191 @@
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+import { Link } from 'react-router-dom'
+import Navbar from '../pages/Navbar'
+import { toast } from 'react-hot-toast'
+import {
+  User,
+  Mail,
+  Save,
+  ArrowLeft,
+  Shield,
+  CheckCircle,
+  Loader2,
+} from 'lucide-react'
+
+export default function Profile() {
+  const { user, profile, fetchProfile } = useAuth()
+  const [formData, setFormData] = useState({ full_name: '', email: '' })
+  const [loading, setLoading] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        email: profile.email || user?.email || '',
+      })
+    }
+  }, [profile, user])
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setSaved(false)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: formData.full_name, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+
+    if (error) {
+      toast.error('Failed to update profile: ' + error.message)
+    } else {
+      toast.success('Profile updated!')
+      setSaved(true)
+      // Refresh profile in context if method exposed
+      if (typeof fetchProfile === 'function') fetchProfile(user.id)
+      setTimeout(() => setSaved(false), 3000)
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <Navbar />
+
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+        {/* Back link */}
+        <Link
+          to="/dashboard"
+          className="inline-flex items-center space-x-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Dashboard</span>
+        </Link>
+
+        {/* Card */}
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-primary-600 to-blue-700 px-8 py-10 text-white text-center relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full" />
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white rounded-full" />
+            </div>
+            <div className="relative">
+              <div className="mx-auto h-20 w-20 rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center text-3xl font-bold mb-4 shadow-xl">
+                {(formData.full_name || 'U')
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </div>
+              <h1 className="text-2xl font-bold">{formData.full_name || 'Your Profile'}</h1>
+              <p className="text-blue-200 text-sm mt-1">{formData.email}</p>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div className="px-8 py-8 space-y-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">Edit Profile</h2>
+              <p className="text-sm text-gray-500">Update your personal information below</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    name="full_name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    placeholder="Your full name"
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-gray-50 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Email (read-only) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email Address
+                  <span className="ml-2 text-xs text-gray-400 font-normal">(cannot be changed here)</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    disabled
+                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-400 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Role Badge */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+                <div className="flex items-center space-x-2 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50">
+                  <Shield className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 capitalize">{profile?.role || 'user'}</span>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-primary-600 to-blue-700 hover:from-primary-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : saved ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-emerald-300" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-5 w-5" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Account Info */}
+            <div className="pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-400 text-center">
+                Member since{' '}
+                {profile?.created_at
+                  ? new Date(profile.created_at).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })
+                  : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
