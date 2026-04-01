@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -6,20 +5,35 @@ import { Link } from 'react-router-dom'
 import Navbar from '../pages/Navbar'
 import { toast } from 'react-hot-toast'
 import {
-  User,
-  Mail,
-  Save,
-  ArrowLeft,
-  Shield,
-  CheckCircle,
-  Loader2,
+  User, Mail, Save, ArrowLeft, Shield, CheckCircle, Loader2,
+  CreditCard, AlertCircle, X
 } from 'lucide-react'
+import SubscriptionPlans from './SubscriptionPlans'
 
 export default function Profile() {
   const { user, profile, fetchProfile } = useAuth()
   const [formData, setFormData] = useState({ full_name: '', email: '' })
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [subLoading, setSubLoading] = useState(false)
+
+  // Define PLANS locally
+  const PLANS = [
+    {
+      id: 'monthly',
+      name: 'Monthly',
+      price: 9.99,
+      period: 'month',
+      features: ['Unlimited score entry', 'Monthly draws', 'Charity support']
+    },
+    {
+      id: 'yearly',
+      name: 'Yearly (Save 20%)',
+      price: 95.88,
+      period: 'year',
+      features: ['Everything in Monthly', '2 months FREE', 'Priority support']
+    }
+  ]
 
   useEffect(() => {
     if (profile) {
@@ -49,11 +63,71 @@ export default function Profile() {
     } else {
       toast.success('Profile updated!')
       setSaved(true)
-      // Refresh profile in context if method exposed
       if (typeof fetchProfile === 'function') fetchProfile(user.id)
       setTimeout(() => setSaved(false), 3000)
     }
     setLoading(false)
+  }
+
+  // Add subscription handler
+  const handleSubscribe = async (plan) => {
+    const hasActiveSubscription = profile?.subscription_status === 'active'
+    if (hasActiveSubscription) {
+      toast.error('You already have an active subscription!')
+      return
+    }
+
+    setSubLoading(true)
+    
+    try {
+      // Delete existing inactive subscriptions
+      await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('user_id', user.id)
+        .neq('status', 'active')
+
+      // Create new subscription
+      const startDate = new Date()
+      const endDate = new Date()
+      if (plan.id === 'monthly') {
+        endDate.setMonth(endDate.getMonth() + 1)
+      } else {
+        endDate.setFullYear(endDate.getFullYear() + 1)
+      }
+
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .insert([{
+          user_id: user.id,
+          plan: plan.id,
+          status: 'active',
+          current_period_start: startDate.toISOString(),
+          current_period_end: endDate.toISOString()
+        }])
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          subscription_plan: plan.id,
+          subscription_id: `sub_${Date.now()}`,
+          subscription_ends_at: endDate.toISOString()
+        })
+        .eq('id', user.id)
+
+      if (subError || profileError) {
+        toast.error('Subscription failed')
+      } else {
+        toast.success(`Subscribed to ${plan.name}! 🎉`)
+        if (typeof fetchProfile === 'function') fetchProfile(user.id)
+        setTimeout(() => window.location.reload(), 1000)
+      }
+    } catch (error) {
+      toast.error('Subscription failed')
+    } finally {
+      setSubLoading(false)
+    }
   }
 
   return (
@@ -61,7 +135,6 @@ export default function Profile() {
       <Navbar />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-        {/* Back link */}
         <Link
           to="/dashboard"
           className="inline-flex items-center space-x-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
@@ -70,7 +143,6 @@ export default function Profile() {
           <span>Back to Dashboard</span>
         </Link>
 
-        {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-primary-600 to-blue-700 px-8 py-10 text-white text-center relative overflow-hidden">
@@ -92,7 +164,6 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Form */}
           <div className="px-8 py-8 space-y-6">
             <div>
               <h2 className="text-lg font-bold text-gray-900 mb-1">Edit Profile</h2>
@@ -100,11 +171,8 @@ export default function Profile() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Full Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Full Name
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -119,11 +187,9 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Email (read-only) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email Address
-                  <span className="ml-2 text-xs text-gray-400 font-normal">(cannot be changed here)</span>
+                  Email Address <span className="ml-2 text-xs text-gray-400 font-normal">(cannot be changed here)</span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300" />
@@ -136,7 +202,6 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Role Badge */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
                 <div className="flex items-center space-x-2 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50">
@@ -145,7 +210,6 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Save Button */}
               <button
                 type="submit"
                 disabled={loading}
@@ -170,7 +234,42 @@ export default function Profile() {
               </button>
             </form>
 
-            {/* Account Info */}
+            {/* Subscription Section */}
+            {profile?.subscription_status === 'active' ? (
+              <SubscriptionPlans className="mt-8" />
+            ) : (
+              <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-2xl">
+                <div className="text-center mb-6">
+                  <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Subscription</h3>
+                  <p className="text-gray-600">Renew to continue accessing premium features</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {PLANS.slice(0, 2).map((plan) => (
+                    <button
+                      key={plan.id}
+                      onClick={() => handleSubscribe(plan)}
+                      disabled={subLoading}
+                      className="p-6 border-2 rounded-xl hover:shadow-xl transition-all duration-200 flex items-start space-x-4 group hover:-translate-y-1 disabled:opacity-50 group-hover:border-blue-400 border-gray-200"
+                    >
+                      <CreditCard className="h-8 w-8 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 text-left">
+                        <h4 className="font-bold text-lg text-gray-900 group-hover:text-blue-700">{plan.name}</h4>
+                        <p className="text-2xl font-black text-gray-900">£{plan.price}</p>
+                        <p className="text-sm text-gray-500">/{plan.period}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  {profile?.subscription_status === 'cancelled' 
+                    ? 'Previous subscription cancelled. Renew anytime!' 
+                    : 'Subscribe to unlock all features'
+                  }
+                </p>
+              </div>
+            )}
+
             <div className="pt-4 border-t border-gray-100">
               <p className="text-xs text-gray-400 text-center">
                 Member since{' '}

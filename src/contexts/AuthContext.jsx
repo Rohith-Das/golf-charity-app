@@ -86,6 +86,14 @@ export function AuthProvider({ children }) {
     
     console.log('✅ Signin success:', data.user.email)
     toast.success('Welcome back!')
+    
+    // FORCE profile refresh after login
+    setTimeout(async () => {
+      if (typeof fetchProfile === 'function') {
+        await fetchProfile(data.user.id)
+      }
+    }, 500)
+
     return { data }
   }
 

@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import Navbar from './Navbar'
 import { Trophy, Target, Heart, TrendingUp, User, ChevronRight } from 'lucide-react'
 import ScoreManager from '../components/ScoreManager'
+import SubscriptionGuard from '../components/SubscriptionGuard'
+
 
 export default function UserDashboard() {
   const { profile } = useAuth()
@@ -84,7 +86,9 @@ export default function UserDashboard() {
         </div>
 
         {/* Score Manager — full width */}
-        <ScoreManager />
+       <SubscriptionGuard>
+          <ScoreManager />
+        </SubscriptionGuard>
 
         {/* Charity nudge */}
         {!profile?.charity_id && (
