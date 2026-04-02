@@ -5,6 +5,7 @@ import Navbar from './Navbar'
 import { Trophy, Target, Heart, TrendingUp, User, ChevronRight } from 'lucide-react'
 import ScoreManager from '../components/ScoreManager'
 import SubscriptionGuard from '../components/SubscriptionGuard'
+import DrawPanel from '../components/DrawPanel'
 
 
 export default function UserDashboard() {
@@ -84,6 +85,9 @@ export default function UserDashboard() {
             </div>
           ))}
         </div>
+         <SubscriptionGuard>
+          <DrawPanel />
+        </SubscriptionGuard>
 
         {/* Score Manager — full width */}
        <SubscriptionGuard>
