@@ -5,9 +5,10 @@ import AdminScoreManager from '../components/AdminScoreManager'
 import { toast } from 'react-hot-toast'
 import {
   Users, Search, Edit2, X, Check, Loader2, Shield, User, RefreshCw,
-  ChevronDown, ChevronUp, Target, CreditCard, Calendar, Crown,Trophy
+  ChevronDown, ChevronUp, Target, CreditCard, Calendar, Crown,Trophy,Heart
 } from 'lucide-react'
 import AdminDrawManager from '../components/AdminDrawManager'
+import AdminCharityManager from '../components/charity/AdminCharityManager'
 
 
 const ROLES = ['user', 'admin']
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'users',  label: 'Users',           icon: Users  },
   { id: 'draws',  label: 'Draw Management', icon: Trophy },
   { id: 'scores', label: 'Score Manager',   icon: Target },
+    { id: 'charities', label: 'Charities',        icon: Heart  }, 
 ]
 
 export default function AdminDashboard() {
@@ -403,6 +405,7 @@ export default function AdminDashboard() {
  
         {/* Tab: Scores */}
         {activeTab === 'scores' && <AdminScoreManager />}
+          {activeTab === 'charities' && <AdminCharityManager />}
       </div>
     </div>
   )

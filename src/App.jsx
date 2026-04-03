@@ -6,6 +6,8 @@ import Signup from './pages/Signup'
 import UserDashboard from './pages/UserDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import Profile from './components/Profile'
+import CharityDirectory from './components/charity/CharityDirectory'
+import CharityProfile from './components/charity/CharityProfile'
 
 export default function App() {
   return (
@@ -42,6 +44,8 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/charities" element={<CharityDirectory />} />
+<Route path="/charities/:id" element={<CharityProfile />} />
           
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>

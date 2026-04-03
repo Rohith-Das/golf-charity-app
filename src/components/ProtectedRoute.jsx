@@ -12,6 +12,9 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
   }
 
   if (adminOnly && profile?.role !== 'admin') {
+    return <Navigate to="/admin" replace />
+  }
+    if (adminOnly && profile?.role !== 'admin') {
     return <Navigate to="/dashboard" replace />
   }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState ,useEffect} from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
@@ -9,9 +9,18 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn ,profile,isAdmin} = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const [pendingNav, setPendingNav] = useState(false) 
+
+  useEffect(() => {
+    if (pendingNav && profile) {
+      navigate(isAdmin ? '/admin' : '/dashboard', { replace: true })
+      setPendingNav(false)
+    }
+  }, [pendingNav, profile, isAdmin, navigate])
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,8 +29,7 @@ export default function Login() {
     const { error } = await signIn(email, password)
     
     if (!error) {
-      toast.success('Welcome back!')
-      navigate('/dashboard')
+    setPendingNav(true) 
     }
     
     setLoading(false)
