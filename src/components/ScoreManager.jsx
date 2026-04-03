@@ -1,8 +1,7 @@
-
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
-import { toast } from 'react-hot-toast'
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 import {
   Plus,
   Trash2,
@@ -15,167 +14,143 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-} from 'lucide-react'
+} from 'lucide-react';
 
-const MAX_SCORES = 5
-const MIN_SCORE = 1
-const MAX_SCORE = 45
+const MAX_SCORES = 5;
+const MIN_SCORE = 1;
+const MAX_SCORE = 45;
 
-// Stableford colour coding — higher is better
 function getScoreStyle(score) {
-  if (score >= 40) return { label: 'Excellent', bg: 'bg-emerald-100', text: 'text-emerald-700', bar: 'bg-emerald-500', ring: 'ring-emerald-300' }
-  if (score >= 31) return { label: 'Good', bg: 'bg-blue-100', text: 'text-blue-700', bar: 'bg-blue-500', ring: 'ring-blue-300' }
-  if (score >= 21) return { label: 'Average', bg: 'bg-amber-100', text: 'text-amber-700', bar: 'bg-amber-500', ring: 'ring-amber-300' }
-  return { label: 'Below Par', bg: 'bg-red-100', text: 'text-red-600', bar: 'bg-red-400', ring: 'ring-red-300' }
-}
-
-function ScoreBar({ score }) {
-  const style = getScoreStyle(score)
-  const pct = Math.round((score / MAX_SCORE) * 100)
-  return (
-    <div className="flex items-center space-x-2 mt-1.5">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${style.bar}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
-        {style.label}
-      </span>
-    </div>
-  )
+  if (score >= 40) return { label: 'Excellent', color: 'text-emerald-400', bar: 'bg-emerald-500' };
+  if (score >= 31) return { label: 'Good', color: 'text-blue-400', bar: 'bg-blue-500' };
+  if (score >= 21) return { label: 'Average', color: 'text-amber-400', bar: 'bg-amber-500' };
+  return { label: 'Below Par', color: 'text-red-400', bar: 'bg-red-500' };
 }
 
 export default function ScoreManager() {
-  const { user } = useAuth()
-  const [scores, setScores] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [deletingId, setDeletingId] = useState(null)
-  const [showForm, setShowForm] = useState(false)
+  const { user } = useAuth();
+  const [scores, setScores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+
   const [form, setForm] = useState({
     score: '',
     score_date: new Date().toISOString().split('T')[0],
-  })
+  });
 
   const fetchScores = async () => {
-    setLoading(true)
+    if (!user?.id) return;
+    setLoading(true);
     const { data, error } = await supabase
       .from('golf_scores')
       .select('*')
       .eq('user_id', user.id)
       .order('score_date', { ascending: false })
-      .limit(MAX_SCORES)
+      .limit(MAX_SCORES);
 
-    if (error) toast.error('Failed to load scores')
-    else setScores(data || [])
-    setLoading(false)
-  }
+    if (error) toast.error('Failed to load scores');
+    else setScores(data || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (user?.id) fetchScores()
-  }, [user?.id])
+    fetchScores();
+  }, [user?.id]);
 
-  const atLimit = scores.length >= MAX_SCORES
-
-  // Oldest score that will be removed on next insert
+  const atLimit = scores.length >= MAX_SCORES;
   const oldestScore = atLimit
     ? [...scores].sort((a, b) => new Date(a.score_date) - new Date(b.score_date))[0]
-    : null
+    : null;
+
+  const avg = scores.length
+    ? Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length)
+    : null;
+
+  const best = scores.length ? Math.max(...scores.map((s) => s.score)) : null;
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    const scoreVal = parseInt(form.score, 10)
+    e.preventDefault();
+    const scoreVal = parseInt(form.score, 10);
 
-    if (!form.score_date) return toast.error('Please select a date')
-    if (isNaN(scoreVal) || scoreVal < MIN_SCORE || scoreVal > MAX_SCORE)
-      return toast.error(`Score must be between ${MIN_SCORE} and ${MAX_SCORE}`)
+    if (!form.score_date) return toast.error('Please select a date');
+    if (isNaN(scoreVal) || scoreVal < MIN_SCORE || scoreVal > MAX_SCORE) {
+      return toast.error(`Score must be between ${MIN_SCORE} and ${MAX_SCORE}`);
+    }
 
-    // Check duplicate date
-    const duplicate = scores.find((s) => s.score_date === form.score_date)
-    if (duplicate)
-      return toast.error('You already have a score for this date. Choose a different date.')
+    const duplicate = scores.find((s) => s.score_date === form.score_date);
+    if (duplicate) return toast.error('You already have a score for this date.');
 
-    setSubmitting(true)
+    setSubmitting(true);
 
     const { error } = await supabase.from('golf_scores').insert({
       user_id: user.id,
       score: scoreVal,
       score_date: form.score_date,
-    })
+    });
 
     if (error) {
-      if (error.code === '23505') toast.error('A score for this date already exists.')
-      else toast.error('Failed to save score: ' + error.message)
+      toast.error(error.message || 'Failed to save score');
     } else {
-      toast.success('Score saved!')
-      setForm({ score: '', score_date: new Date().toISOString().split('T')[0] })
-      setShowForm(false)
-      fetchScores()
+      toast.success('Score saved successfully!');
+      setForm({ score: '', score_date: new Date().toISOString().split('T')[0] });
+      setShowForm(false);
+      fetchScores();
     }
-    setSubmitting(false)
-  }
+    setSubmitting(false);
+  };
 
   const handleDelete = async (id) => {
-    setDeletingId(id)
-    const { error } = await supabase.from('golf_scores').delete().eq('id', id)
-    if (error) toast.error('Failed to delete score')
+    setDeletingId(id);
+    const { error } = await supabase.from('golf_scores').delete().eq('id', id);
+    if (error) toast.error('Failed to delete score');
     else {
-      toast.success('Score removed')
-      setScores((prev) => prev.filter((s) => s.id !== id))
+      toast.success('Score deleted');
+      setScores((prev) => prev.filter((s) => s.id !== id));
     }
-    setDeletingId(null)
-  }
-
-  const avg = scores.length
-    ? Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length)
-    : null
-
-  const best = scores.length ? Math.max(...scores.map((s) => s.score)) : null
+    setDeletingId(null);
+  };
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white/10 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden scroll-animate">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-blue-600 flex items-center justify-center shadow-sm">
-              <Target className="h-5 w-5 text-white" />
+      <div className="px-6 py-6 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
+              <Target className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">My Golf Scores</h2>
-              <p className="text-xs text-gray-500">Stableford format · last {MAX_SCORES} scores retained</p>
+              <h2 className="text-2xl font-semibold text-white">My Golf Scores</h2>
+              <p className="text-slate-400 text-sm">Stableford • Last {MAX_SCORES} scores kept</p>
             </div>
           </div>
+
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-blue-700 hover:from-primary-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+            className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-white font-medium transition-all active:scale-95"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
             <span>Add Score</span>
-            {showForm ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {showForm ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </button>
         </div>
 
-        {/* Stats Row */}
+        {/* Stats */}
         {scores.length > 0 && (
-          <div className="flex items-center space-x-6 mt-4">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500">Avg:</span>
-              <span className="text-sm font-bold text-gray-900">{avg}</span>
+          <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-emerald-400 text-2xl font-bold">{avg || '-'}</p>
+              <p className="text-xs text-slate-400">Average</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <Award className="h-4 w-4 text-amber-400" />
-              <span className="text-xs text-gray-500">Best:</span>
-              <span className="text-sm font-bold text-gray-900">{best}</span>
+            <div>
+              <p className="text-amber-400 text-2xl font-bold">{best || '-'}</p>
+              <p className="text-xs text-slate-400">Best Score</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <Target className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500">
-                {scores.length}/{MAX_SCORES} scores
-              </span>
+            <div>
+              <p className="text-white text-2xl font-bold">{scores.length}/{MAX_SCORES}</p>
+              <p className="text-xs text-slate-400">Entries</p>
             </div>
           </div>
         )}
@@ -183,29 +158,24 @@ export default function ScoreManager() {
 
       {/* Add Score Form */}
       {showForm && (
-        <div className="px-6 py-5 bg-gradient-to-br from-primary-50/60 to-blue-50/40 border-b border-primary-100">
-          {/* Replacement warning */}
+        <div className="p-6 bg-white/5 border-b border-white/10">
           {atLimit && oldestScore && (
-            <div className="flex items-start space-x-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl mb-4">
-              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700 leading-relaxed">
-                <span className="font-semibold">Heads up:</span> You have {MAX_SCORES} scores saved. Adding a new score will
-                automatically remove your oldest —{' '}
-                <span className="font-semibold">
-                  {new Date(oldestScore.score_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} (Score: {oldestScore.score})
-                </span>.
+            <div className="mb-5 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-amber-300">
+                Adding this score will replace your oldest score from{' '}
+                <span className="font-medium">
+                  {new Date(oldestScore.score_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
+                </span>
               </p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 items-end">
-            {/* Score Input */}
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                Stableford Score <span className="text-gray-400 font-normal">(1–45)</span>
-              </label>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">Stableford Score (1-45)</label>
               <div className="relative">
-                <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Target className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
                   type="number"
                   min={MIN_SCORE}
@@ -213,142 +183,124 @@ export default function ScoreManager() {
                   required
                   value={form.score}
                   onChange={(e) => setForm({ ...form, score: e.target.value })}
-                  placeholder="e.g. 36"
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white transition-all"
+                  placeholder="36"
+                  className="w-full bg-white/10 border border-white/20 rounded-2xl py-4 pl-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-rose-500"
                 />
               </div>
-              {/* Live score label preview */}
-              {form.score && parseInt(form.score) >= MIN_SCORE && parseInt(form.score) <= MAX_SCORE && (
-                <p className={`text-xs font-medium mt-1 ${getScoreStyle(parseInt(form.score)).text}`}>
+              {form.score && (
+                <p className={`text-sm mt-2 font-medium ${getScoreStyle(parseInt(form.score)).color}`}>
                   {getScoreStyle(parseInt(form.score)).label}
                 </p>
               )}
             </div>
 
-            {/* Date Input */}
-            <div className="flex-1 min-w-0">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                Date Played
-              </label>
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">Date Played</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <input
                   type="date"
                   required
                   max={new Date().toISOString().split('T')[0]}
                   value={form.score_date}
                   onChange={(e) => setForm({ ...form, score_date: e.target.value })}
-                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white transition-all"
+                  className="w-full bg-white/10 border border-white/20 rounded-2xl py-4 pl-12 text-white focus:outline-none focus:border-rose-500"
                 />
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 bg-gradient-to-r from-primary-600 to-blue-700 hover:from-primary-700 hover:to-blue-800 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center space-x-2 whitespace-nowrap"
+              className="sm:col-span-2 mt-2 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 py-4 rounded-2xl font-semibold text-lg transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3"
             >
               {submitting ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /><span>Saving...</span></>
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Saving Score...
+                </>
               ) : (
-                <><Plus className="h-4 w-4" /><span>Save Score</span></>
+                <>
+                  <Plus className="h-5 w-5" />
+                  Save Score
+                </>
               )}
             </button>
           </form>
 
-          {/* Info */}
-          <div className="flex items-start space-x-2 mt-3">
-            <Info className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-gray-400">One score per date. Only your latest {MAX_SCORES} scores are kept.</p>
+          <div className="flex items-center gap-2 mt-4 text-xs text-slate-400">
+            <Info className="h-4 w-4" />
+            One score per date • Only your latest {MAX_SCORES} scores are saved
           </div>
         </div>
       )}
 
-      {/* Score List */}
-      <div className="px-6 py-4">
+      {/* Scores List */}
+      <div className="p-6">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-400" />
-            <p className="text-sm text-gray-400 mt-3">Loading scores...</p>
+          <div className="py-16 flex flex-col items-center">
+            <Loader2 className="h-10 w-10 animate-spin text-rose-400" />
+            <p className="text-slate-400 mt-4">Loading your scores...</p>
           </div>
         ) : scores.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
-              <Target className="h-8 w-8 text-gray-200" />
-            </div>
-            <p className="text-gray-500 font-medium">No scores yet</p>
-            <p className="text-sm text-gray-400 mt-1">Add your first Stableford score to get started</p>
+          <div className="py-16 text-center">
+            <Target className="h-16 w-16 mx-auto text-slate-600" />
+            <p className="text-xl font-medium text-white mt-6">No scores recorded yet</p>
+            <p className="text-slate-400 mt-2">Add your first round to start tracking progress</p>
             <button
               onClick={() => setShowForm(true)}
-              className="mt-4 px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors"
+              className="mt-6 px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-white font-medium"
             >
-              Add First Score
+              Add Your First Score
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {scores.map((s, idx) => {
-              const style = getScoreStyle(s.score)
-              const isNewest = idx === 0
+              const style = getScoreStyle(s.score);
+              const isNewest = idx === 0;
+
               return (
                 <div
                   key={s.id}
-                  className={`relative flex items-center gap-4 p-4 rounded-2xl border transition-all duration-200 ${
+                  className={`flex items-center gap-5 p-5 rounded-2xl border transition-all ${
                     isNewest
-                      ? 'border-primary-200 bg-primary-50/40'
-                      : 'border-gray-100 bg-gray-50/40 hover:bg-gray-50'
+                      ? 'border-rose-500/30 bg-white/5'
+                      : 'border-white/10 hover:border-white/20 bg-white/5'
                   }`}
                 >
-                  {/* Position badge */}
-                  <div className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center text-lg font-bold ring-2 ${style.ring} ${style.bg} ${style.text}`}>
+                  <div className={`h-14 w-14 rounded-2xl flex items-center justify-center text-3xl font-bold ring-2 ring-offset-2 ring-offset-slate-950 ${style.color === 'text-emerald-400' ? 'ring-emerald-500' : style.color === 'text-blue-400' ? 'ring-blue-500' : style.color === 'text-amber-400' ? 'ring-amber-500' : 'ring-red-500'}`}>
                     {s.score}
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {new Date(s.score_date).toLocaleDateString('en-GB', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </p>
-                      {isNewest && (
-                        <span className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
-                          Latest
-                        </span>
-                      )}
-                      {atLimit && oldestScore?.id === s.id && (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-600 text-xs font-medium rounded-full">
-                          Oldest
-                        </span>
-                      )}
-                    </div>
-                    <ScoreBar score={s.score} />
+                  <div className="flex-1">
+                    <p className="font-medium text-white">
+                      {new Date(s.score_date).toLocaleDateString('en-GB', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'long',
+                      })}
+                    </p>
+                    <p className={`text-sm mt-1 ${style.color}`}>{style.label}</p>
                   </div>
 
-                  {/* Delete */}
                   <button
                     onClick={() => handleDelete(s.id)}
                     disabled={deletingId === s.id}
-                    className="flex-shrink-0 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
-                    title="Delete score"
+                    className="p-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
                   >
                     {deletingId === s.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     )}
                   </button>
                 </div>
-              )
+              );
             })}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
