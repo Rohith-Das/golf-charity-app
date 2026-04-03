@@ -1,6 +1,5 @@
 
 
-// components/AdminDrawManager.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -334,18 +333,19 @@ export default function AdminDrawManager() {
     setWinnersLoading(false);
   };
 
-  const markPaid = async (winnerId) => {
-    const { error } = await supabase.from('winners')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('id', winnerId);
-    if (error) toast.error('Update failed');
-    else {
-      toast.success('Marked as paid');
-      setWinners(prev => prev.map(w =>
-        w.id === winnerId ? { ...w, status: 'paid', paid_at: new Date().toISOString() } : w
-      ));
-    }
-  };
+const markPaid = async (winnerId) => {
+  const { error } = await supabase.rpc('mark_winner_paid', {
+    p_winner_id: winnerId,
+    p_payment_reference: null,
+  })
+  if (error) toast.error('Update failed: ' + error.message)
+  else {
+    toast.success('Marked as paid')
+    setWinners(prev => prev.map(w =>
+      w.id === winnerId ? { ...w, status: 'paid', paid_at: new Date().toISOString() } : w
+    ))
+  }
+}
 
   /* ──── Derived: step state for active pending draw ──── */
   const hasNumbers = simNumbers.length === DRAW_SIZE;

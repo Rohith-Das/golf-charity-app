@@ -17,17 +17,7 @@ const CATEGORY_COLORS = {
   other: 'bg-gray-100 text-gray-600',
 }
 
-/**
- * CharitySelector
- * 
- * Props:
- *  - value: UUID - currently selected charity_id
- *  - onChange: (charityId) => void - called when selection changes
- *  - contributionPct: number (10–100)
- *  - onPctChange: (pct) => void
- *  - compact: boolean - smaller inline version for forms
- *  - onClose: () => void - if shown as modal
- */
+
 export default function CharitySelector({
   value,
   onChange,

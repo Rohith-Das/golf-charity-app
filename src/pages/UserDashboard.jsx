@@ -6,6 +6,7 @@ import { Trophy, Target, Heart, TrendingUp, User, ChevronRight } from 'lucide-re
 import ScoreManager from '../components/ScoreManager'
 import SubscriptionGuard from '../components/SubscriptionGuard'
 import DrawPanel from '../components/DrawPanel'
+import WinningsOverview from '../components/winners/Winningsoverview'
 
 
 export default function UserDashboard() {
@@ -92,6 +93,11 @@ export default function UserDashboard() {
         {/* Score Manager — full width */}
        <SubscriptionGuard>
           <ScoreManager />
+        </SubscriptionGuard>
+
+       
+           <SubscriptionGuard>
+          <WinningsOverview />
         </SubscriptionGuard>
 
         {/* Charity nudge */}

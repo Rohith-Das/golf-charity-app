@@ -1,7 +1,4 @@
 
-
-
-// components/DrawPanel.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,11 +30,11 @@ export default function DrawPanel() {
     if (!user?.id) return;
     setLoading(true);
 
-    const { data: pending } = await supabase.from('draws').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(1).single();
+    const { data: pending } = await supabase.from('draws').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(1);
     setCurrentDraw(pending);
 
     if (pending) {
-      const { data: entry } = await supabase.from('draw_entries').select('*').eq('draw_id', pending.id).eq('user_id', user.id).single();
+      const { data: entry } = await supabase.from('draw_entries').select('*').eq('draw_id', pending.id).eq('user_id', user.id);
       setUserEntry(entry);
     }
 

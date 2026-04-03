@@ -1,9 +1,5 @@
 
 
-
-// Profile.jsx — Updated to include CharitySelector and contribution % setting
-// Replace the charity nudge section and add it as a proper section
-
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
