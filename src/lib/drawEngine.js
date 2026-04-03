@@ -76,28 +76,31 @@ export function countMatches(entryNums, winningNums) {
  * @param {{ match5: number, match4: number, match3: number }} winnerCounts
  */
 export function calculatePrizes(prizePool, jackpotRollover = 0, winnerCounts) {
-  const match5Pool = prizePool * PRIZE_SPLIT.match5 + jackpotRollover
-  const match4Pool = prizePool * PRIZE_SPLIT.match4
-  const match3Pool = prizePool * PRIZE_SPLIT.match3
+  const match5Pool = prizePool * 0.4 + jackpotRollover;
+  const match4Pool = prizePool * 0.35;
+  const match3Pool = prizePool * 0.25;
 
   return {
     match5: {
       pool: match5Pool,
       count: winnerCounts.match5,
-      perWinner: winnerCounts.match5 > 0 ? +(match5Pool / winnerCounts.match5).toFixed(2) : 0,
+      perWinner: winnerCounts.match5 > 0 ? 
+        +(match5Pool / winnerCounts.match5).toFixed(2) : 0,
     },
     match4: {
       pool: match4Pool,
       count: winnerCounts.match4,
-      perWinner: winnerCounts.match4 > 0 ? +(match4Pool / winnerCounts.match4).toFixed(2) : 0,
+      perWinner: winnerCounts.match4 > 0 ? 
+        +(match4Pool / winnerCounts.match4).toFixed(2) : 0,
     },
     match3: {
       pool: match3Pool,
       count: winnerCounts.match3,
-      perWinner: winnerCounts.match3 > 0 ? +(match3Pool / winnerCounts.match3).toFixed(2) : 0,
+      perWinner: winnerCounts.match3 > 0 ? 
+        +(match3Pool / winnerCounts.match3).toFixed(2) : 0,
     },
     rollover: winnerCounts.match5 === 0 ? match5Pool : 0,
-  }
+  };
 }
 
 /**
