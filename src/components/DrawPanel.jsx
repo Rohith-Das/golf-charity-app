@@ -59,17 +59,31 @@ export default function DrawPanel() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-3xl p-8 shadow-xl">
-        <Trophy className="h-12 w-12 mb-4" />
-        <h2 className="text-3xl font-bold">Monthly Prize Draw</h2>
-        {currentDraw && (
-          <div className="mt-6">
-            <p className="text-amber-100">{currentDraw.month_year}</p>
-            <p className="text-5xl font-bold mt-2">{formatCurrency(currentDraw.total_prize_pool)}</p>
-            {currentDraw.jackpot_amount > 0 && <p className="text-yellow-200 mt-3">Jackpot Rollover: {formatCurrency(currentDraw.jackpot_amount)}</p>}
-          </div>
-        )}
-      </div>
+      <div className="text-center py-12">
+  <Trophy className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+  <h2 className="text-3xl font-bold text-gray-900">Monthly Prize Draw</h2>
+  
+  {currentDraw ? (
+    <div className="mt-6 space-y-3">
+      <p className="text-amber-600 font-medium">{currentDraw.month_year}</p>
+      
+      <p className="text-5xl font-bold text-gray-900">
+        {formatCurrency(currentDraw.total_prize_pool ?? 0)}
+      </p>
+
+      {currentDraw.jackpot_amount > 0 && (
+        <p className="text-yellow-600 font-medium">
+          Jackpot Rollover: {formatCurrency(currentDraw.jackpot_amount ?? 0)}
+        </p>
+      )}
+    </div>
+  ) : (
+    <div className="mt-8">
+      <p className="text-gray-500 text-lg">No active draw yet</p>
+      <p className="text-sm text-gray-400 mt-2">Check back soon for the next monthly prize draw</p>
+    </div>
+  )}
+</div>
 
       {currentDraw && userEntry && (
         <div className="bg-white rounded-3xl p-8 border">

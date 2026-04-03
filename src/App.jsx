@@ -9,14 +9,17 @@ import Profile from './components/Profile'
 import CharityDirectory from './components/charity/CharityDirectory'
 import CharityProfile from './components/charity/CharityProfile'
 import WinningsPage from './pages/Winningspage'
+import AuthPage from './pages/AuthPage'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+     <Route path="/auth" element={<AuthPage />} />
+<Route path="/login" element={<Navigate to="/auth" replace />} />
+<Route path="/signup" element={<Navigate to="/auth" replace />} />
+<Route path="/" element={<Navigate to="/auth" replace />} />
           
           {/* User Dashboard */}
           <Route 
@@ -51,7 +54,6 @@ export default function App() {
 
           <Route path="/winnings" element={<WinningsPage />} />
 
-          <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
